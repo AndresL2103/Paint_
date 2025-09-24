@@ -1,40 +1,589 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Generador Musical Pokémon</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Courier New', monospace;
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #ffff00, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .pokemon-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-family: inherit;
+        }
+
+        .gen1 { background: linear-gradient(45deg, #ff4757, #2f3542); color: white; }
+        .gen2 { background: linear-gradient(45deg, #ffa502, #ff6348); color: white; }
+        .gen3 { background: linear-gradient(45deg, #7bed9f, #70a1ff); color: white; }
+        .gen4 { background: linear-gradient(45deg, #5352ed, #a4b0be); color: white; }
+        .yellow { background: linear-gradient(45deg, #fffa65, #ff9ff3); color: black; }
+
+        .pokemon-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .canvas-container {
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            display: inline-block;
+        }
+
+        .info-panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .pokemon-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .type-info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #ffff00;
+        }
+
+        .clear-btn {
+            background: linear-gradient(45deg, #ff4757, #ff6b7a);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .sparkle {
+            animation: sparkle 0.5s ease-in-out;
+        }
+    </style>
 </head>
 <body>
-    <h1> Mi paint </h1>
-    <script> 
-        let nombreMaria = "Maria";
-        let nombreAndres = "Andres";
-        let edadMaria = 47;
-        let edadtotal= 0;
-        let edadAndres = 97;
-        let esmayordeedad;
+    <div class="container">
+        <h1>🎵 Generador Musical Pokémon 🎨</h1>
+        <p class="subtitle">Dibuja y crea música con los elementos Pokémon</p>
+        
+        <div class="controls">
+            <button class="pokemon-button gen1" onclick="setGeneration('gen1')">🔴 Gen I (Rojo/Azul)</button>
+            <button class="pokemon-button gen2" onclick="setGeneration('gen2')">🟡 Gen II (Oro/Plata)</button>
+            <button class="pokemon-button gen3" onclick="setGeneration('gen3')">🟢 Gen III (Rubí/Zafiro)</button>
+            <button class="pokemon-button gen4" onclick="setGeneration('gen4')">💎 Gen IV (Diamante/Perla)</button>
+            <button class="pokemon-button yellow" onclick="setGeneration('yellow')">⚡ Amarillo</button>
+        </div>
 
-        console.log (edadtotal);
-        console.log (nombreMaria + "tiene" + edadMaria + "años")
-        console.log (nombreAndres + "tiene" + edadAndres + "años")
-     
-        calcularedad = () => {
-            //edad += 1;
-            if (edadMaria >= 18) {
-                esmayordeedad = true;
-            } else {
-                esmayordeedad = false;
-            }
-                
+        <div class="canvas-container" id="canvas-container"></div>
+        
+        <button class="clear-btn" onclick="clearCanvas()">🗑️ Limpiar Canvas</button>
+
+        <div class="info-panel">
+            <h3>🎼 Cómo funciona:</h3>
+            <p>Selecciona un tipo Pokémon y dibuja en el canvas. Cada elemento genera sonidos únicos:</p>
             
-            edadtotal = edadAndres + edadMaria;
-        }
-         
+            <div class="pokemon-info">
+                <div class="type-info">
+                    <h4>🔴 Generación I (Rojo/Azul)</h4>
+                    <p>Sonidos chiptune clásicos con escalas pentatónicas</p>
+                </div>
+                <div class="type-info">
+                    <h4>🟡 Generación II (Oro/Plata)</h4>
+                    <p>Melodías nostálgicas con progressiones suaves</p>
+                </div>
+                <div class="type-info">
+                    <h4>🟢 Generación III (Rubí/Zafiro)</h4>
+                    <p>Sonidos orquestales tropicales y vibrantes</p>
+                </div>
+                <div class="type-info">
+                    <h4>💎 Generación IV (Diamante/Perla)</h4>
+                    <p>Composiciones épicas y cinematográficas</p>
+                </div>
+                <div class="type-info">
+                    <h4>⚡ Edición Amarilla</h4>
+                    <p>Sonidos eléctricos y energéticos de Pikachu</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        calcularedad(); 
-        console.log(edadtotal); 
-        console.log(esmayordeedad);
+    <script>
+        // Variables globales
+        let currentGeneration = 'gen1';
+        let synths = {};
+        let effects = {};
+        let particles = [];
+        let trail = [];
+
+        // Configuración de generaciones Pokémon con escalas musicales inspiradas en los juegos originales
+        const pokemonGenerations = {
+            gen1: {
+                name: "Generación I - Kanto",
+                color: [255, 71, 87],
+                // Escala pentatónica inspirada en los temas de batalla clásicos
+                notes: ['C4', 'D4', 'F4', 'G4', 'A4', 'C5'],
+                synthType: 'square',
+                effectType: 'bitcrush',
+                tempo: 'fast',
+                style: 'chiptune'
+            },
+            gen2: {
+                name: "Generación II - Johto",
+                color: [255, 165, 2],
+                // Progresión más melódica, inspirada en temas de Johto
+                notes: ['E4', 'F#4', 'G#4', 'A4', 'B4', 'C#5'],
+                synthType: 'pulse',
+                effectType: 'reverb',
+                tempo: 'medium',
+                style: 'melodic'
+            },
+            gen3: {
+                name: "Generación III - Hoenn",
+                color: [123, 237, 159],
+                // Escala mayor con toques tropicales
+                notes: ['D4', 'E4', 'F#4', 'A4', 'B4', 'D5'],
+                synthType: 'sawtooth',
+                effectType: 'chorus',
+                tempo: 'upbeat',
+                style: 'orchestral'
+            },
+            gen4: {
+                name: "Generación IV - Sinnoh",
+                color: [83, 82, 237],
+                // Progresión épica y grandiosa
+                notes: ['F4', 'G4', 'A4', 'Bb4', 'C5', 'D5'],
+                synthType: 'sine',
+                effectType: 'phaser',
+                tempo: 'epic',
+                style: 'cinematic'
+            },
+            yellow: {
+                name: "Edición Amarilla - Pikachu",
+                color: [255, 250, 101],
+                // Escala eléctrica y energética
+                notes: ['B3', 'D4', 'E4', 'F#4', 'A4', 'B4'],
+                synthType: 'triangle',
+                effectType: 'distortion',
+                tempo: 'electric',
+                style: 'energetic'
+            }
+        };
+
+        // Variables de estado del audio
+        let audioInitialized = false;
+        let audioContext = null;
+
+        // Inicializar Tone.js
+        async function initAudio() {
+            try {
+                if (audioInitialized) return;
+                
+                await Tone.start();
+                console.log("Tone.js iniciado correctamente");
+                
+                // Crear sintetizadores y efectos para cada generación
+                Object.keys(pokemonGenerations).forEach(gen => {
+                    const config = pokemonGenerations[gen];
+                    
+                    // Crear efectos específicos para cada generación
+                    let effect;
+                    switch(config.effectType) {
+                        case 'bitcrush':
+                            // Simulando efecto 8-bit para Gen I
+                            effect = new Tone.Distortion(0.3).toDestination();
+                            break;
+                        case 'reverb':
+                            effect = new Tone.Reverb(1.5).toDestination();
+                            break;
+                        case 'chorus':
+                            effect = new Tone.Chorus(4, 2.5, 0.5).toDestination();
+                            break;
+                        case 'phaser':
+                            effect = new Tone.Phaser({
+                                frequency: 8,
+                                octaves: 3,
+                                stages: 6,
+                                Q: 3,
+                                baseFrequency: 600
+                            }).toDestination();
+                            break;
+                        case 'distortion':
+                            effect = new Tone.Distortion(0.6).toDestination();
+                            break;
+                    }
+                    effects[gen] = effect;
+                    
+                    // Crear sintetizador con características específicas de cada generación
+                    let synthConfig = {
+                        oscillator: { type: config.synthType },
+                        envelope: {
+                            attack: 0.02,
+                            decay: 0.1,
+                            sustain: 0.3,
+                            release: 0.4
+                        },
+                        volume: -18
+                    };
+
+                    // Ajustar envelope según el estilo de la generación
+                    switch(config.style) {
+                        case 'chiptune':
+                            synthConfig.envelope = { attack: 0.01, decay: 0.05, sustain: 0.8, release: 0.1 };
+                            break;
+                        case 'orchestral':
+                            synthConfig.envelope = { attack: 0.1, decay: 0.2, sustain: 0.6, release: 0.8 };
+                            break;
+                        case 'cinematic':
+                            synthConfig.envelope = { attack: 0.2, decay: 0.3, sustain: 0.7, release: 1.2 };
+                            break;
+                        case 'energetic':
+                            synthConfig.envelope = { attack: 0.01, decay: 0.08, sustain: 0.4, release: 0.3 };
+                            break;
+                    }
+                    
+                    synths[gen] = new Tone.PolySynth(Tone.Synth, synthConfig).connect(effect);
+                });
+                
+                audioInitialized = true;
+                console.log("Sintetizadores de generaciones creados:", Object.keys(synths));
+                
+                // Mostrar mensaje de éxito
+                showAudioStatus("🎵 Audio retro inicializado correctamente");
+                
+            } catch (error) {
+                console.error("Error inicializando audio:", error);
+                showAudioStatus("❌ Error inicializando audio - Haz clic para reintentar");
+            }
+        }
+
+        function showAudioStatus(message) {
+            const existing = document.querySelector('.audio-status');
+            if (existing) existing.remove();
+            
+            const status = document.createElement('div');
+            status.className = 'audio-status';
+            status.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 10px 15px;
+                border-radius: 5px;
+                z-index: 1000;
+                font-size: 14px;
+            `;
+            status.textContent = message;
+            document.body.appendChild(status);
+            
+            setTimeout(() => status.remove(), 3000);
+        }
+
+        // Configurar p5.js
+        function setup() {
+            let canvas = createCanvas(800, 600);
+            canvas.parent('canvas-container');
+            background(20, 25, 40);
+            
+            // Agregar texto de instrucciones para el audio
+            drawInstructions();
+        }
+
+        function drawInstructions() {
+            fill(255, 255, 255, 100);
+            textAlign(CENTER, CENTER);
+            textSize(24);
+            text("🎵 Haz clic en cualquier parte para activar el audio retro", width/2, height/2);
+            textSize(16);
+            text("Después selecciona una generación y comienza a dibujar", width/2, height/2 + 40);
+        }
+
+        function draw() {
+            // Efecto de desvanecimiento
+            fill(20, 25, 40, 10);
+            rect(0, 0, width, height);
+            
+            // Dibujar partículas
+            for(let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                
+                fill(p.color[0], p.color[1], p.color[2], p.alpha);
+                noStroke();
+                circle(p.x, p.y, p.size);
+                
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 3;
+                p.size *= 0.98;
+                
+                if(p.alpha <= 0 || p.size < 1) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Dibujar rastro del mouse
+            if(trail.length > 1) {
+                stroke(pokemonGenerations[currentGeneration].color[0], 
+                       pokemonGenerations[currentGeneration].color[1], 
+                       pokemonGenerations[currentGeneration].color[2], 150);
+                strokeWeight(8);
+                
+                for(let i = 1; i < trail.length; i++) {
+                    line(trail[i-1].x, trail[i-1].y, trail[i].x, trail[i].y);
+                }
+            }
+        }
+
+        function mouseDragged() {
+            // Inicializar audio en primera interacción
+            if (!audioInitialized) {
+                initAudio();
+                background(20, 25, 40); // Limpiar instrucciones
+            }
+            
+            if(mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+                // Agregar punto al rastro
+                trail.push({x: mouseX, y: mouseY});
+                if(trail.length > 20) {
+                    trail.shift();
+                }
+                
+                // Crear partículas
+                for(let i = 0; i < 3; i++) {
+                    particles.push({
+                        x: mouseX + random(-10, 10),
+                        y: mouseY + random(-10, 10),
+                        vx: random(-2, 2),
+                        vy: random(-2, 2),
+                        color: pokemonGenerations[currentGeneration].color,
+                        alpha: 255,
+                        size: random(8, 20)
+                    });
+                }
+                
+                // Reproducir nota musical basada en la posición
+                if (audioInitialized) {
+                    playNote(mouseX, mouseY);
+                }
+            }
+        }
+
+        function mousePressed() {
+            // Inicializar audio en primera interacción
+            if (!audioInitialized) {
+                initAudio();
+                background(20, 25, 40); // Limpiar instrucciones
+            }
+        }
+
+        function mouseReleased() {
+            trail = [];
+        }
+
+        function playNote(x, y) {
+            if (!audioInitialized || !synths[currentGeneration]) {
+                console.log("Audio no inicializado aún");
+                return;
+            }
+            
+            const config = pokemonGenerations[currentGeneration];
+            
+            // Mapear posición a nota de la escala de la generación
+            const noteIndex = Math.floor(map(x, 0, width, 0, config.notes.length));
+            const note = config.notes[Math.min(noteIndex, config.notes.length - 1)];
+            
+            // Mapear Y a duración con variaciones según el estilo
+            let baseDuration = map(y, 0, height, 0.1, 0.8);
+            
+            // Ajustar duración según el estilo de la generación
+            switch(config.style) {
+                case 'chiptune':
+                    baseDuration *= 0.6; // Notas más cortas para sonido 8-bit
+                    break;
+                case 'orchestral':
+                    baseDuration *= 1.3; // Notas más largas para sonido orquestal
+                    break;
+                case 'cinematic':
+                    baseDuration *= 1.5; // Notas épicas y largas
+                    break;
+                case 'energetic':
+                    baseDuration *= 0.4; // Notas rápidas y enérgicas
+                    break;
+            }
+            
+            try {
+                // Reproducir nota con características de la generación
+                synths[currentGeneration].triggerAttackRelease(note, baseDuration);
+                console.log(`${config.name}: ${note} por ${baseDuration.toFixed(2)}s`);
+                
+                // Efecto visual de sparkle
+                createSparkle(x, y);
+                
+                // Agregar acordes ocasionales para enriquecer el sonido
+                if(Math.random() < 0.3) {
+                    setTimeout(() => {
+                        const chordNote = config.notes[Math.floor(Math.random() * config.notes.length)];
+                        synths[currentGeneration].triggerAttackRelease(chordNote, baseDuration * 0.5);
+                    }, baseDuration * 200);
+                }
+            } catch (error) {
+                console.error("Error reproduciendo nota:", error);
+            }
+        }
+
+        function createSparkle(x, y) {
+            for(let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: random(-5, 5),
+                    vy: random(-5, 5),
+                    color: [255, 255, 255],
+                    alpha: 255,
+                    size: random(3, 8)
+                });
+            }
+        }
+
+        // Funciones de control
+        function setGeneration(gen) {
+            // Inicializar audio si no está listo
+            if (!audioInitialized) {
+                initAudio();
+            }
+            
+            currentGeneration = gen;
+            
+            // Efecto visual en botón
+            const buttons = document.querySelectorAll('.pokemon-button');
+            buttons.forEach(btn => btn.classList.remove('sparkle'));
+            event.target.classList.add('sparkle');
+            
+            // Reproducir progresión característica de la generación (con delay para asegurar inicialización)
+            setTimeout(() => {
+                if(audioInitialized && synths[gen]) {
+                    try {
+                        const config = pokemonGenerations[gen];
+                        // Tocar una progresión de 3 notas que represente la generación
+                        const progression = [config.notes[0], config.notes[2], config.notes[4]];
+                        
+                        progression.forEach((note, index) => {
+                            setTimeout(() => {
+                                synths[gen].triggerAttackRelease(note, 0.3);
+                            }, index * 150);
+                        });
+                        
+                        console.log(`Cambiado a: ${config.name}`);
+                        showAudioStatus(`🎵 ${config.name}`);
+                    } catch (error) {
+                        console.error("Error reproduciendo progresión:", error);
+                    }
+                }
+            }, 100);
+        }
+
+        function clearCanvas() {
+            background(20, 25, 40);
+            particles = [];
+            trail = [];
+            
+            // Efecto sonoro de limpieza con el estilo de la generación actual
+            if(audioInitialized && synths[currentGeneration]) {
+                try {
+                    const config = pokemonGenerations[currentGeneration];
+                    // Progresión descendente para indicar limpieza
+                    const clearNotes = [config.notes[5], config.notes[3], config.notes[0]];
+                    synths[currentGeneration].triggerAttackRelease(clearNotes, 0.2);
+                } catch (error) {
+                    console.error("Error en sonido de limpieza:", error);
+                }
+            }
+        }
+
+        // Efectos de teclado
+        function keyPressed() {
+            if(key === ' ') {
+                clearCanvas();
+            } else if(key >= '1' && key <= '5') {
+                const generations = Object.keys(pokemonGenerations);
+                const index = parseInt(key) - 1;
+                if(index < generations.length) {
+                    setGeneration(generations[index]);
+                }
+            }
+        }
+
+        // Inicializar cuando se carga la página
+        window.addEventListener('load', () => {
+            // Configurar botón inicial
+            document.querySelector('.gen1').classList.add('sparkle');
+        });
     </script>
 </body>
 </html>
